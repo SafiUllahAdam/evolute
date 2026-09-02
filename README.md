@@ -114,8 +114,10 @@ src/
   renderer/     Chat, settings, and the transparent overlay
 ```
 
-See `CLAUDE.md` for the coordinate-space rules behind the pointing pipeline -
-that is the part most likely to break if you change it.
+The pointing pipeline moves between three coordinate spaces - the downsampled
+image sent to the model, the native-resolution crop used for refinement, and
+the overlay's display pixels. Every conversion has to be explicit; that is the
+part most likely to break if you change it.
 
 ## License
 
