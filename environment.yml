@@ -1,0 +1,20 @@
+# Conda environment for this project's Python tooling.
+#
+# The app itself is Electron + TypeScript and does not use Python at all - it
+# runs on Node and its dependencies live in node_modules. This environment
+# exists only for the build-time scripts under scripts/, which draw the brand
+# icons with Pillow.
+#
+#   conda env create -f environment.yml     # first time
+#   conda activate evolute
+#   python scripts/generate-icon.py
+#
+# Environments are created under S:\conda-envs (registered via
+# `conda config --append envs_dirs S:\conda-envs`) to keep them off the
+# space-constrained C: drive.
+name: evolute
+channels:
+  - defaults
+dependencies:
+  - python=3.13
+  - pillow>=11

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>eVolutɘ Overlay</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: transparent;
+      user-select: none;
+      -webkit-app-region: no-drag;
+    }
+
+    /*
+     * Evolute's mark is a glowing "V" rather than a filled dot.
+     *
+     * The overlay floats over arbitrary content, so the glyph has to survive a
+     * white IDE and a black terminal equally. Two opposing layers do that:
+     *
+     *   1. a tight near-black outline hugging the letterform, which is what
+     *      separates it from light backgrounds
+     *   2. a wide light-purple bloom outside that, which is what separates it
+     *      from dark backgrounds
+     *
+     * Both are text-shadows rather than a `drop-shadow` filter or
+     * `-webkit-text-stroke`: shadows paint *behind* the fill, so the outline
+     * never eats into the glyph the way a centred stroke does, and the
+     * letterform stays crisp at these sizes.
+     */
+    #cursor {
+      position: absolute;
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1;
+      color: #f5e9ff;
+      text-shadow:
+        /* 1 - hard outline for light backgrounds */
+        1.5px 1.5px 0 rgba(35, 8, 62, 0.98),
+        -1.5px 1.5px 0 rgba(35, 8, 62, 0.98),
+        1.5px -1.5px 0 rgba(35, 8, 62, 0.98),
+        -1.5px -1.5px 0 rgba(35, 8, 62, 0.98),
+        0 2px 0 rgba(35, 8, 62, 0.98),
+        0 -2px 0 rgba(35, 8, 62, 0.98),
+        2px 0 0 rgba(35, 8, 62, 0.98),
+        -2px 0 0 rgba(35, 8, 62, 0.98),
+        0 0 5px rgba(35, 8, 62, 0.9),
+        /* 2 - bloom for dark backgrounds */
+        0 0 14px rgba(192, 132, 252, 0.95),
+        0 0 26px rgba(168, 85, 247, 0.75),
+        0 0 46px rgba(168, 85, 247, 0.45);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0;
+      transition: left 0.4s ease-out, top 0.4s ease-out, opacity 0.3s ease;
+      z-index: 9999;
+    }
+
+    #cursor.visible {
+      opacity: 1;
+      animation: v-breathe 1.8s ease-in-out infinite;
+    }
+
+    /* Halo behind the glyph, so the pulse reads without smearing the V. */
+    #cursor::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 46px;
+      height: 46px;
+      margin: -23px 0 0 -23px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(192, 132, 252, 0.45) 0%, rgba(192, 132, 252, 0) 70%);
+      animation: pulse 1.5s ease-in-out infinite;
+      z-index: -1;
+    }
+
+    @keyframes v-breathe {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.12); }
+    }
+
+    #label {
+      position: absolute;
+      transform: translate(-50%, 20px);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #label.visible {
+      opacity: 1;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(2); opacity: 0; }
+    }
+
+    /*
+     * Cursor buddy - the small "V" that rides along with the mouse. Offset
+     * down-right of the hotspot so it sits beside the system pointer instead
+     * of hiding under it, and kept deliberately small and dim: this one is on
+     * screen the whole session, so it has to stay out of the way.
+     */
+    #cursor-buddy {
+      position: absolute;
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+      color: #f5e9ff;
+      /* Same two-layer contrast trick as #cursor, scaled to the smaller glyph:
+         a 1px dark outline for light backgrounds, a soft bloom for dark ones. */
+      text-shadow:
+        1px 1px 0 rgba(35, 8, 62, 0.98),
+        -1px 1px 0 rgba(35, 8, 62, 0.98),
+        1px -1px 0 rgba(35, 8, 62, 0.98),
+        -1px -1px 0 rgba(35, 8, 62, 0.98),
+        0 0 3px rgba(35, 8, 62, 0.9),
+        0 0 9px rgba(192, 132, 252, 0.8),
+        0 0 18px rgba(168, 85, 247, 0.5);
+      /* Nested into the pointer: the V's open notch is parked over the arrow's
+         lower tail so the tail appears to slide down into the wedge, with the
+         vertex still poking out below-right. Windows draws the hardware cursor
+         above every window, including this overlay, so the arrow always wins
+         the overlap - which is exactly what sells the effect. Geometry at
+         15px Segoe UI Bold: the glyph sits ~x 0-10, y 2-12 inside its box and
+         the notch spans ~x 2-8, while the arrow's tail runs ~x 3-8, y 12-19
+         from the hotspot. */
+      transform: translate(3px, 10px);
+      pointer-events: none;
+      z-index: 9998;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #cursor-buddy.visible {
+      opacity: 1;
+    }
+
+    #cursor-buddy::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      margin: -11px 0 0 -11px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(192, 132, 252, 0.3) 0%, rgba(192, 132, 252, 0) 70%);
+      animation: buddy-pulse 2s ease-in-out infinite;
+      z-index: -1;
+    }
+
+    @keyframes buddy-pulse {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.8); opacity: 0; }
+    }
+
+    /* Recording indicator */
+    #recording-indicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 16px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    #recording-indicator.active {
+      opacity: 1;
+    }
+
+    #recording-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    #recording-text {
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 13px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Processing indicator */
+    #processing-indicator {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 16px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    #processing-indicator.active {
+      opacity: 1;
+    }
+
+    #processing-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #638cff;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    #processing-text {
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="cursor-buddy">V</div>
+  <div id="cursor">V</div>
+  <div id="label"></div>
+
+  <div id="recording-indicator">
+    <div id="recording-dot"></div>
+    <span id="recording-text">Listening...</span>
+  </div>
+
+  <div id="processing-indicator">
+    <div id="processing-dot"></div>
+    <span id="processing-text">Reading screen...</span>
+  </div>
+
+  <script>
+    const cursor = document.getElementById('cursor');
+    const label = document.getElementById('label');
+    const recordingIndicator = document.getElementById('recording-indicator');
+
+    console.log('[Evolute overlay] script loaded, window.evolute =', !!window.evolute);
+
+    // Handle point-at animations
+    if (window.evolute && window.evolute.onPoint) {
+      // Timer for the in-flight pointing sequence. A later answer must be able
+      // to cancel an earlier one, otherwise the old sequence keeps stepping the
+      // cursor and its trailing hide-timer wipes the new point mid-display.
+      let pointTimer = null;
+
+      function hidePointer() {
+        cursor.classList.remove('visible');
+        label.classList.remove('visible');
+      }
+
+      window.evolute.onPoint((tags) => {
+        console.log('[Evolute overlay] onPoint received tags:', JSON.stringify(tags));
+
+        if (pointTimer !== null) {
+          clearTimeout(pointTimer);
+          pointTimer = null;
+        }
+
+        // An answer with nothing to point at still has to clear whatever the
+        // previous answer left on screen, or the blue circle sits there for
+        // the rest of the session.
+        if (tags.length === 0) {
+          hidePointer();
+          return;
+        }
+
+        let i = 0;
+        function pointNext() {
+          if (i >= tags.length) {
+            // Hide after last point
+            pointTimer = setTimeout(() => {
+              pointTimer = null;
+              hidePointer();
+            }, 3000);
+            return;
+          }
+
+          const tag = tags[i];
+          console.log('[Evolute overlay] pointing at', tag.x, tag.y, tag.label);
+          cursor.style.left = tag.x + 'px';
+          cursor.style.top = tag.y + 'px';
+          cursor.classList.add('visible');
+
+          label.style.left = tag.x + 'px';
+          label.style.top = tag.y + 'px';
+          label.textContent = tag.label;
+          label.classList.add('visible');
+
+          i++;
+          pointTimer = setTimeout(pointNext, 2000);
+        }
+
+        pointNext();
+      });
+    } else {
+      console.error('[Evolute overlay] window.evolute.onPoint is not available!');
+    }
+
+    // Handle cursor buddy tracking
+    const cursorBuddy = document.getElementById('cursor-buddy');
+
+    window.evolute.onCursorBuddy((x, y) => {
+      cursorBuddy.style.left = x + 'px';
+      cursorBuddy.style.top = y + 'px';
+      if (!cursorBuddy.classList.contains('visible')) {
+        cursorBuddy.classList.add('visible');
+      }
+    });
+
+    window.evolute.onCursorBuddyVisible((visible) => {
+      if (visible) {
+        cursorBuddy.classList.add('visible');
+      } else {
+        cursorBuddy.classList.remove('visible');
+      }
+    });
+
+    // Handle processing stages
+    const processingIndicator = document.getElementById('processing-indicator');
+    const processingText = document.getElementById('processing-text');
+
+    if (window.evolute && window.evolute.onStage) {
+      window.evolute.onStage(({ stage, label }) => {
+        if (stage === 'done' || stage === 'speaking') {
+          processingIndicator.classList.remove('active');
+        } else {
+          processingText.textContent = label;
+          processingIndicator.classList.add('active');
+        }
+      });
+    }
+
+    // Handle recording state
+    if (window.evolute && window.evolute.onRecordingChanged) {
+      window.evolute.onRecordingChanged((isRecording) => {
+        if (isRecording) {
+          recordingIndicator.classList.add('active');
+        } else {
+          recordingIndicator.classList.remove('active');
+        }
+      });
+    } else {
+      console.error('[Evolute overlay] window.evolute.onRecordingChanged is not available!');
+    }
+  </script>
+</body>
+</html>
