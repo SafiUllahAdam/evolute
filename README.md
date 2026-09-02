@@ -1,28 +1,89 @@
-# Evolute Windows
+# eVolutɘ
 
-AI-powered screen companion for Windows. See your screen, hear your voice, point at answers.
+**AI screen companion for Windows.** Ask about whatever is on your screen, by voice or text, and get an answer that points at the thing it is talking about.
 
-## What it does
+## What is eVolutɘ?
 
-- **Sees your screen** - captures screenshots and sends them to Claude with vision
-- **Hears you** - push-to-talk voice input with real-time transcription
-- **Speaks back** - text-to-speech responses via ElevenLabs, OpenAI, or Windows SAPI
-- **Points at things** - animated cursor overlay that highlights UI elements Claude references
-- **Cursor buddy** - glowing purple V that rides alongside your mouse (toggleable)
-- **Always on top** - optional pinned chat window that stays visible over other apps
-- **Multi-provider** - supports Anthropic, OpenAI, and OpenRouter (300+ models)
-- **HIPAA mode** - force all processing local (transcription + TTS) except the LLM call
-- **Lives in your tray** - runs quietly as a system tray app
+A tray-resident assistant that can see your screen. Instead of describing your
+problem to a chatbot, you ask out loud while looking at it: "what does this
+error mean", "where is the setting for this", "which button submits the form".
+eVolutɘ captures the screen at that moment, answers in the chat window, speaks
+the answer aloud, and drops a glowing purple **V** on the element it means.
 
-## Download
+It only looks when you ask. Nothing is captured in the background.
 
-### Installer (recommended)
+## How it works
 
-Build the installer (below), then run **Evolute-Setup.exe**. It installs per user, so there is no admin prompt and no dependencies to install first.
+1. Press `Ctrl+Shift+Space` and speak. Press it again to stop - it is a toggle, not a hold.
+   (Or just type in the chat window; voice is optional.)
+2. Your speech is transcribed and the screen is captured at that instant.
+3. Both go to a vision model, which replies in words and, where relevant, with
+   coordinates for what it is describing.
+4. The answer appears in chat and is spoken aloud. Coordinates become an
+   on-screen **V** that lands on the element for a few seconds.
 
-### Build from source
+## Key capabilities
 
-You'll need [Node.js](https://nodejs.org/) (v18+) installed.
+**Voice and screen understanding.** Push-to-talk transcription with a choice of
+engines, paired with a full-resolution screen capture so the model reads what
+you are actually looking at, including small text.
+
+**Visual guidance.** Answers can point. The model emits inline `[POINT]` tags
+that become an animated marker on the real screen, across multiple monitors.
+With Anthropic models a second refinement pass re-crops each point at native
+resolution to land accurately on dense UI; other providers use single-pass
+coordinates, which are close but less exact.
+
+**Cursor companion.** A small glowing purple V rides just off your mouse
+pointer so you can see the app is live. Toggleable.
+
+**Stays out of the way.** Lives in the system tray, optional always-on-top chat
+window, remembers the last 20 exchanges of a conversation.
+
+## Supported AI models
+
+| Provider | Notes |
+| --- | --- |
+| Anthropic | Full accuracy, including two-pass point refinement |
+| OpenAI | Vision chat completions |
+| OpenRouter | One key, many models, including free tiers |
+| Any OpenAI-compatible endpoint | Two configurable slots for self-hosted or third-party APIs |
+
+Transcription: AssemblyAI, OpenAI Whisper, or whisper.cpp running locally.
+Speech: Windows SAPI (offline), OpenAI, or ElevenLabs.
+
+## Privacy
+
+Screens are captured only in response to an explicit request, never on a timer
+or in the background.
+
+Choosing local Whisper and Windows SAPI keeps audio and spoken replies entirely
+on the machine; only the model call leaves it. **HIPAA mode** enforces that
+combination in one switch. An optional proxy can front the model call.
+
+API keys are stored in plain text at `%APPDATA%\evolute-windows\settings.json`.
+That is reasonable for a personal tool on your own machine and not appropriate
+for a shared or distributed build.
+
+## Installation
+
+Build the installer, then run `Evolute-Setup.exe`. It installs per user, so
+there is no admin prompt.
+
+```bash
+npm install
+npx tsc
+npm run make
+```
+
+The installer is written to `<build root>/make/squirrel.windows/x64/Evolute-Setup.exe`,
+where the build root defaults to `S:/evolute-build/out` and can be overridden
+with the `EVOLUTE_OUT_DIR` environment variable.
+
+The build is unsigned, so Windows SmartScreen will warn on first run: choose
+**More info > Run anyway**.
+
+To run from source instead:
 
 ```bash
 npm install
@@ -30,84 +91,31 @@ npx tsc
 npm run dev
 ```
 
-> **Note:** `npm run dev` does not compile TypeScript for you. You must run `npx tsc` before the first launch and after every source change, or run `npx tsc --watch` in a second terminal.
+> `npm run dev` does not compile TypeScript. Run `npx tsc` first and after every
+> source change, or keep `npx tsc --watch` in a second terminal.
 
-### Build a distributable installer
+Then open **Settings** from the tray icon and add an API key for whichever
+provider you want to use.
 
-```bash
-npx tsc
-npm run make
-```
+## Roadmap
 
-The installer is written to `<build root>/make/squirrel.windows/x64/Evolute-Setup.exe`. The build root defaults to `S:/evolute-build/out` and is overridable with the `EVOLUTE_OUT_DIR` environment variable.
-
-## Setup
-
-1. Launch Evolute (or run `npm run dev`)
-2. Open **Settings** from the system tray icon
-3. Enter your API key(s):
-   - **Required:** [Anthropic API key](https://console.anthropic.com/) (or use OpenRouter/OpenAI)
-   - **Optional:** [AssemblyAI](https://www.assemblyai.com/) for voice transcription
-   - **Optional:** [ElevenLabs](https://elevenlabs.io/) for premium TTS
-
-## Features
-
-### Voice Input
-
-Hold the push-to-talk hotkey (default: `Ctrl+Shift+Space`) to record, release to send. Transcription providers:
-- **AssemblyAI** - cloud, high accuracy
-- **OpenAI Whisper** - cloud, fast
-- **Whisper Local** - offline, private (uses whisper.cpp)
-
-### Text-to-Speech
-
-- **Windows SAPI** - free, offline, works out of the box
-- **OpenAI TTS** - cloud, natural sounding
-- **ElevenLabs** - cloud, premium quality
-
-### Cursor Buddy
-
-A small glowing purple V that sits just off your mouse pointer, marking the app as live without getting in the way. Toggle on/off in **Settings > Window > "Cursor buddy"**. Enabled by default.
-
-### AI Pointing
-
-When Claude references UI elements on your screen, it uses `[POINT]` tags to animate a cursor overlay that highlights exactly what it's talking about. Works across multi-monitor setups.
-
-### HIPAA Mode
-
-Toggle in Settings to force all processing to stay local:
-- Transcription: local Whisper (no audio leaves device)
-- TTS: Windows SAPI (no text leaves device)
-- Only the LLM API call goes external (requires BAA with Anthropic)
+- Auto-stop recording on silence, so push-to-talk does not need a second press
+- Point refinement for non-Anthropic providers
+- Conversation history that survives a restart
+- Signed builds, to drop the SmartScreen warning
 
 ## Architecture
 
 ```
 src/
-├── main/           # Electron main process
-│   ├── index.ts        # App entry, window creation, cursor buddy
-│   ├── companion.ts    # Central orchestrator (voice → screen → claude → tts → overlay)
-│   ├── screenshot.ts   # Screen capture via desktopCapturer
-│   ├── hotkey.ts       # Global push-to-talk hotkey
-│   ├── audio.ts        # Audio capture coordination
-│   ├── tray.ts         # System tray setup
-│   └── settings.ts     # Persistent JSON settings store
-├── services/       # External service integrations
-│   ├── claude.ts       # Anthropic Claude API (vision + chat)
-│   ├── openai-chat.ts  # OpenAI GPT API
-│   ├── openrouter-chat.ts  # OpenRouter API (300+ models)
-│   ├── transcription/  # Pluggable: AssemblyAI, OpenAI, local Whisper
-│   └── tts/            # Pluggable: ElevenLabs, OpenAI, Windows SAPI
-├── preload/        # Context bridge for renderer
-└── renderer/       # UI
-    ├── chat/           # Chat window with markdown rendering
-    ├── overlay/        # Transparent click-through window with cursor buddy + point animations
-    └── settings/       # Settings panel
+  main/         Electron main process: windows, tray, hotkey, orchestration
+  services/     Model, transcription and speech providers
+  preload/      Context bridge
+  renderer/     Chat, settings, and the transparent overlay
 ```
 
-## Contributing
-
-PRs welcome. See `docs/plans/` for what's in progress.
+See `CLAUDE.md` for the coordinate-space rules behind the pointing pipeline -
+that is the part most likely to break if you change it.
 
 ## License
 
