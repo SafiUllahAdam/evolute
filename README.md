@@ -4,13 +4,13 @@
 
 ## What is eVolutɘ?
 
-A tray-resident assistant that can see your screen. Instead of describing your
+An AI assistant that can see your screen. Instead of describing your
 problem to a chatbot, you ask out loud while looking at it: "what does this
-error mean", "where is the setting for this", "which button submits the form".
-eVolutɘ captures the screen at that moment, answers in the chat window, speaks
-the answer aloud, and drops a glowing purple **V** on the element it means.
+error mean", "where is the setting for this software", "how to perform this formula on this excel sheet".
+eVolutɘ captures the screen at that moment, speaks
+the answer aloud, and drops a glowing purple **V** on the screen to help you perform your task.
 
-It only looks when you ask. Nothing is captured in the background.
+**It only looks when you ask. Nothing is captured in the background.**
 
 ## How it works
 
