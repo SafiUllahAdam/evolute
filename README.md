@@ -1,6 +1,6 @@
 # eVolutɘ
 
-**AI screen companion for Windows.** Ask about whatever is on your screen, by voice or text, and get an answer that points at the thing it is talking about.
+**AI screen companion for Windows.** Lives with your cursor on your screen real-time. Ask about whatever is on your screen, by voice or text, and get an answer that points at the thing it is talking about.
 
 ## What is eVolutɘ?
 
