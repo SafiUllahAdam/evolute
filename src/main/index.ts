@@ -1,9 +1,10 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, screen, shell } from "electron";
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, screen, shell } from "electron";
 import { createTray } from "./tray";
 import { HotkeyManager } from "./hotkey";
 import { AudioCapture } from "./audio";
 import { SettingsStore } from "./settings";
 import { CompanionManager } from "./companion";
+import { ProjectStore } from "./project-store";
 import path from "path";
 
 let chatWindow: BrowserWindow | null = null;
@@ -11,6 +12,9 @@ let settingsWindow: BrowserWindow | null = null;
 let overlayWindows: BrowserWindow[] = [];
 
 const settings = new SettingsStore();
+// Constructed once the app is ready: its files live under `userData`, and
+// `app.getPath("userData")` is only reliable after that point.
+let projects: ProjectStore;
 let companion: CompanionManager;
 let cursorBuddyInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -179,6 +183,15 @@ function createSettingsWindow(): BrowserWindow {
   return win;
 }
 
+/** Push the current document set to every window so open panels stay in sync. */
+function broadcastDocs(summary: unknown): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send("docs:changed", summary);
+    }
+  }
+}
+
 function setupIPC(): void {
   // Chat query - captures screen + sends to Claude
   ipcMain.handle("chat:query", async (_event, text: string) => {
@@ -189,6 +202,106 @@ function setupIPC(): void {
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(msg);
     }
+  });
+
+  // ── Project context ──
+  //
+  // The renderer never receives document text, only the metadata it needs to
+  // draw the list. Sending hundreds of kilobytes over IPC on every panel open
+  // would buy nothing, and the text has no business in a window that also
+  // renders remote markdown.
+
+  ipcMain.handle("docs:list", () => projects.summary());
+
+  ipcMain.handle("docs:add", async (event) => {
+    const parent = BrowserWindow.fromWebContents(event.sender);
+    const options: Electron.OpenDialogOptions = {
+      title: "Add project documents",
+      properties: ["openFile", "multiSelections"],
+      filters: [
+        { name: "Text and docs", extensions: ["md", "markdown", "txt", "rst", "adoc"] },
+        { name: "Data", extensions: ["json", "yaml", "yml", "toml", "csv", "xml"] },
+        { name: "Source", extensions: ["ts", "tsx", "js", "jsx", "py", "go", "rs", "java", "cs", "c", "h", "cpp", "sh", "ps1", "sql", "html", "css"] },
+        { name: "All files", extensions: ["*"] },
+      ],
+    };
+    const result = parent
+      ? await dialog.showOpenDialog(parent, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled || result.filePaths.length === 0) return null;
+    const added = projects.addPaths(result.filePaths);
+    broadcastDocs(added);
+    return added;
+  });
+
+  ipcMain.handle("docs:addFolder", async (event) => {
+    const parent = BrowserWindow.fromWebContents(event.sender);
+    // Windows cannot show a picker that accepts files and folders at once, so
+    // folders get their own entry point rather than a combined one.
+    const options: Electron.OpenDialogOptions = {
+      title: "Add a project folder",
+      properties: ["openDirectory"],
+    };
+    const result = parent
+      ? await dialog.showOpenDialog(parent, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled || result.filePaths.length === 0) return null;
+    const added = projects.addPaths(result.filePaths);
+    broadcastDocs(added);
+    return added;
+  });
+
+  // Drag and drop. Electron 33 no longer exposes `File.path`, so the renderer
+  // resolves each dropped file through `webUtils.getPathForFile` in the
+  // preload and sends the resulting paths here.
+  ipcMain.handle("docs:addPaths", (_event, paths: unknown) => {
+    if (!Array.isArray(paths)) return projects.summary();
+    const clean = paths.filter((p): p is string => typeof p === "string" && p.length > 0);
+    if (clean.length === 0) return projects.summary();
+    const added = projects.addPaths(clean);
+    broadcastDocs(added);
+    return added;
+  });
+
+  ipcMain.handle("docs:remove", (_event, id: string) => {
+    const summary = projects.removeDocument(id);
+    broadcastDocs(summary);
+    return summary;
+  });
+
+  ipcMain.handle("docs:clear", () => {
+    const summary = projects.clearDocuments();
+    broadcastDocs(summary);
+    return summary;
+  });
+
+  // ── Conversation ──
+
+  ipcMain.handle("history:get", () => companion.getHistory());
+
+  ipcMain.handle("sessions:list", () => ({
+    sessions: companion.listSessions(),
+    activeId: companion.activeSessionId(),
+  }));
+
+  ipcMain.handle("sessions:new", () => {
+    companion.newSession();
+    return {
+      sessions: companion.listSessions(),
+      activeId: companion.activeSessionId(),
+      entries: [],
+    };
+  });
+
+  ipcMain.handle("sessions:switch", (_event, id: string) => ({
+    entries: companion.switchSession(id),
+    sessions: companion.listSessions(),
+    activeId: companion.activeSessionId(),
+  }));
+
+  ipcMain.handle("sessions:delete", (_event, id: string) => {
+    const result = companion.deleteSession(id);
+    return { ...result, entries: companion.getHistory() };
   });
 
   // Settings
@@ -230,7 +343,8 @@ app.whenReady().then(() => {
   app.dock?.hide?.();
 
   overlayWindows = createOverlayWindows();
-  companion = new CompanionManager(settings, overlayWindows);
+  projects = new ProjectStore();
+  companion = new CompanionManager(settings, overlayWindows, projects);
 
   const audioCapture = new AudioCapture(settings);
   audioCapture.setCompanion(companion);
@@ -298,12 +412,16 @@ function destroyOverlays(): void {
 
 app.on("before-quit", () => {
   destroyOverlays();
+  // Local TTS speaks through a PowerShell child process, which outlives its
+  // parent quite happily and would keep talking to an empty desktop.
+  companion?.stopSpeaking();
 });
 
 app.on("will-quit", () => {
   // Belt and braces: `before-quit` can be skipped when the process is asked to
   // exit some other way, and a stranded overlay survives the app that owns it.
   destroyOverlays();
+  companion?.stopSpeaking();
   globalShortcut.unregisterAll();
 });
 

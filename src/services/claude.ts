@@ -1,9 +1,12 @@
 import { SettingsStore } from "../main/settings";
+import { streamAnthropicText } from "./sse";
 import {
   ChatQueryParams as ClaudeQueryParams,
   ChatResponse as ClaudeResponse,
   POINTING_SYSTEM_PROMPT as SYSTEM_PROMPT,
   buildScreenContext,
+  buildDocumentSystemBlock,
+  buildMessages,
 } from "./pointing-prompt";
 
 export class ClaudeService {
@@ -41,13 +44,31 @@ export class ClaudeService {
     // Add screen context
     userContent.push({ type: "text", text: buildScreenContext(params) });
 
-    // Build messages array from conversation history
-    const messages = params.conversationHistory.map((entry) => ({
-      role: entry.role,
-      content: entry.role === "user" && entry.content === params.transcript
-        ? userContent  // Latest user message gets the screenshots
-        : entry.content,
-    }));
+    const messages = buildMessages(params, userContent);
+
+    // The system prompt goes out as blocks rather than a plain string so the
+    // attached documents can carry a cache breakpoint. `cache_control` on the
+    // last block caches everything ahead of it as well, so this single marker
+    // covers the pointing prompt and the documents together: every later turn
+    // in the session re-reads that whole prefix at a fraction of the input
+    // price instead of paying full rate for tens of thousands of document
+    // tokens on every question.
+    //
+    // The cache entry expires after roughly five minutes of inactivity, so a
+    // long pause between questions pays the write cost again. Still far
+    // cheaper than not caching at all. No breakpoint when there are no
+    // documents: the pointing prompt on its own sits near Anthropic's minimum
+    // cacheable size, so marking it buys nothing.
+    const system: Array<Record<string, unknown>> = [
+      { type: "text", text: SYSTEM_PROMPT },
+    ];
+    if (params.documents) {
+      system.push({
+        type: "text",
+        text: buildDocumentSystemBlock(params.documents),
+        cache_control: { type: "ephemeral" },
+      });
+    }
 
     const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
@@ -59,14 +80,19 @@ export class ClaudeService {
       body: JSON.stringify({
         model,
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system,
         messages,
+        stream: !!params.onDelta,
       }),
     });
 
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Claude API error (${response.status}): ${error}`);
+    }
+
+    if (params.onDelta) {
+      return { text: await streamAnthropicText(response.body, params.onDelta) };
     }
 
     const data = await response.json() as {

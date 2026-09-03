@@ -9,7 +9,7 @@ const path = require("path");
 
 const settingsPath = path.join(
   process.env.APPDATA || "",
-  "clicky-windows",
+  "evolute-windows",
   "settings.json"
 );
 
@@ -47,7 +47,7 @@ async function main() {
       body: JSON.stringify({
         model,
         max_tokens: 50,
-        messages: [{ role: "user", content: "Say 'Clicky works!' and nothing else." }],
+        messages: [{ role: "user", content: "Say 'eVolute works!' and nothing else." }],
       }),
     });
 

@@ -5,7 +5,7 @@ const { exec } = require("child_process");
 
 const settings = JSON.parse(
   fs.readFileSync(
-    path.join(process.env.APPDATA, "clicky-windows", "settings.json"),
+    path.join(process.env.APPDATA, "evolute-windows", "settings.json"),
     "utf-8"
   )
 );
@@ -20,7 +20,7 @@ async function main() {
     },
     body: JSON.stringify({
       model: "tts-1",
-      input: "Hello! This is Clicky using OpenAI text to speech.",
+      input: "Hello! This is eVolute using OpenAI text to speech.",
       voice: settings.openaiTtsVoice || "alloy",
       response_format: "mp3",
     }),
@@ -34,7 +34,7 @@ async function main() {
   const buf = Buffer.from(await response.arrayBuffer());
   console.log(`2. Got ${buf.length} bytes of audio`);
 
-  const tmpFile = path.join(os.tmpdir(), "clicky-test-tts.mp3");
+  const tmpFile = path.join(os.tmpdir(), "evolute-test-tts.mp3");
   fs.writeFileSync(tmpFile, buf);
   console.log(`3. Saved to ${tmpFile}`);
 

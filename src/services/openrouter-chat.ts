@@ -1,9 +1,12 @@
 import { SettingsStore } from "../main/settings";
+import { streamOpenAIText } from "./sse";
 import {
   ChatQueryParams,
   ChatResponse,
   POINTING_SYSTEM_PROMPT,
   buildScreenContext,
+  buildDocumentSystemBlock,
+  buildMessages,
 } from "./pointing-prompt";
 
 /**
@@ -35,17 +38,17 @@ export class OpenRouterChatService {
 
     userContent.push({ type: "text", text: buildScreenContext(params) });
 
-    const messages: Array<Record<string, unknown>> = [
-      { role: "system", content: POINTING_SYSTEM_PROMPT },
-    ];
+    // Attached documents ride in the system message. Unlike Anthropic there is
+    // no explicit cache breakpoint to set here, so they are re-sent at full
+    // price on every turn - the chat window says so where the files are added.
+    const systemText = params.documents
+      ? `${POINTING_SYSTEM_PROMPT}\n\n${buildDocumentSystemBlock(params.documents)}`
+      : POINTING_SYSTEM_PROMPT;
 
-    for (const entry of params.conversationHistory) {
-      if (entry.role === "user" && entry.content === params.transcript) {
-        messages.push({ role: "user", content: userContent });
-      } else {
-        messages.push({ role: entry.role, content: entry.content });
-      }
-    }
+    const messages: Array<Record<string, unknown>> = [
+      { role: "system", content: systemText },
+      ...buildMessages(params, userContent),
+    ];
 
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -54,13 +57,14 @@ export class OpenRouterChatService {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://github.com/tekram/clicky-windows",
+          "HTTP-Referer": "https://github.com/SafiUllahAdam/evolute",
           "X-Title": "Evolute Windows",
         },
         body: JSON.stringify({
           model,
           max_tokens: 1024,
           messages,
+          stream: !!params.onDelta,
         }),
       }
     );
@@ -68,6 +72,10 @@ export class OpenRouterChatService {
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`OpenRouter API error (${response.status}): ${error}`);
+    }
+
+    if (params.onDelta) {
+      return { text: await streamOpenAIText(response.body, params.onDelta) };
     }
 
     const data = (await response.json()) as {

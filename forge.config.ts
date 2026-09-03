@@ -74,9 +74,9 @@ const config: ForgeConfig = {
     extraResource: ["bin", "models"],
     name: "Evolute",
     executableName: "evolute",
-    appCopyright: "MIT licensed. Windows port of farzaa/clicky.",
+    appCopyright: "MIT licensed.",
     win32metadata: {
-      CompanyName: "tekram",
+      CompanyName: "Muhammad Safi Ullah Adam",
       FileDescription: "eVolutɘ - AI screen companion",
       ProductName: "eVolutɘ",
       OriginalFilename: "evolute.exe",
@@ -94,7 +94,7 @@ const config: ForgeConfig = {
   makers: [
     new MakerSquirrel({
       name: "Evolute",
-      authors: "tekram",
+      authors: "Muhammad Safi Ullah Adam",
       description: "eVolutɘ - AI-powered screen companion for Windows.",
       setupExe: "Evolute-Setup.exe",
       setupIcon: squirrelIcon,

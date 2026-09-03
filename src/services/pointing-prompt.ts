@@ -5,6 +5,20 @@ export interface ChatQueryParams {
   screenshots: ScreenshotResult[];
   cursorPosition: { x: number; y: number };
   conversationHistory: Array<{ role: "user" | "assistant"; content: string }>;
+  /**
+   * Concatenated text of the files the user attached as project context, or
+   * an empty string when none are. Belongs in the system prompt, never in the
+   * message history: history is replayed in full on every turn, so a document
+   * placed there is paid for once per turn instead of once per session.
+   */
+  documents?: string;
+  /**
+   * Called with each fragment of the reply as it is generated. Supplying it
+   * switches the provider into streaming mode; leaving it out keeps the
+   * single-shot request, which is what `refinePoint` and any future
+   * non-interactive caller want.
+   */
+  onDelta?: (chunk: string) => void;
 }
 
 export interface ChatResponse {
@@ -117,4 +131,58 @@ export function buildScreenContext(params: ChatQueryParams): string {
       `  screen${i}: image is ${s.imageDimensions.width}x${s.imageDimensions.height} px (actual display ${s.bounds.width}x${s.bounds.height} at ${s.bounds.x},${s.bounds.y})`
     ),
   ].join("\n");
+}
+
+/**
+ * Frames the attached project documents for the system prompt.
+ *
+ * The last paragraph matters more than it looks. Without it the model treats
+ * the files as a description of the screen and answers questions about the
+ * current window out of a README that may be months stale.
+ */
+export function buildDocumentSystemBlock(documents: string): string {
+  return [
+    "## Project documents",
+    "",
+    "The user has attached the files below as standing background context for",
+    "this session. Use them to understand their project: its purpose, its",
+    "conventions, its terminology, and what they are trying to build.",
+    "",
+    "These files are NOT a description of what is currently on screen. The",
+    "screenshots are. Where a file and the screenshot disagree, the screenshot",
+    "is what the user is looking at right now, and it wins.",
+    "",
+    documents,
+  ].join("\n");
+}
+
+/**
+ * Builds the provider message array, attaching the screenshots to the newest
+ * user turn and sending every earlier turn as plain text.
+ *
+ * Matching by array position, not by comparing text against the transcript:
+ * the same question asked twice ("what is this?") used to match on both turns,
+ * and each one got a full image payload attached - doubling the cost of the
+ * query and, once project documents are in play, overflowing the request.
+ */
+export function buildMessages<T>(
+  params: ChatQueryParams,
+  userContent: T
+): Array<{ role: "user" | "assistant"; content: T | string }> {
+  const history = params.conversationHistory;
+  const last = history.length - 1;
+
+  if (last >= 0 && history[last].role === "user") {
+    return history.map((entry, i) => ({
+      role: entry.role,
+      content: i === last ? userContent : entry.content,
+    }));
+  }
+
+  // Defensive: the caller is expected to have pushed the current turn already,
+  // but dropping the screenshots entirely would be a silent, confusing failure.
+  return [
+    ...history.map((entry) => ({ role: entry.role, content: entry.content })),
+    { role: "user" as const, content: userContent },
+  ];
 }

@@ -1,7 +1,7 @@
 {
   "name": "evolute-windows",
   "version": "0.1.0",
-  "description": "AI-powered screen companion for Windows - see your screen, hear your voice, point at answers. Windows port of farzaa/clicky.",
+  "description": "eVolute - AI screen companion for Windows. See your screen, hear your voice, point at answers.",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "electron-forge start",
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/tekram/clicky-windows.git"
+    "url": "https://github.com/SafiUllahAdam/evolute.git"
   },
   "keywords": [
     "ai",
@@ -25,7 +25,7 @@
     "accessibility",
     "voice-assistant"
   ],
-  "author": "tekram",
+  "author": "Muhammad Safi Ullah Adam",
   "license": "MIT",
   "devDependencies": {
     "@electron-forge/cli": "^7.6.0",

@@ -6,14 +6,14 @@ Evolute is an AI-powered screen companion for Windows. It captures your screen, 
 
 ### From Release (Recommended)
 
-1. Download the latest `.exe` from [Releases](https://github.com/tekram/clicky-windows/releases)
+1. Download the latest `.exe` from [Releases](https://github.com/SafiUllahAdam/evolute/releases)
 2. Run the installer
 3. Evolute appears in your system tray (bottom-right, click `^` if hidden)
 
 ### From Source
 
 ```bash
-git clone https://github.com/tekram/clicky-windows.git
+git clone https://github.com/SafiUllahAdam/evolute.git
 cd evolute-windows
 npm install
 npm run dev

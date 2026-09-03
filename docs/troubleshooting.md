@@ -99,7 +99,7 @@
 
 ## Still Stuck?
 
-- [Open an issue](https://github.com/tekram/clicky-windows/issues) on GitHub with:
+- [Open an issue](https://github.com/SafiUllahAdam/evolute/issues) on GitHub with:
   - Your Windows version
   - Steps to reproduce
   - Error messages (if any)

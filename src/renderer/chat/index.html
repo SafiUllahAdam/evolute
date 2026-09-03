@@ -51,7 +51,7 @@
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
       -webkit-app-region: drag;
       flex-shrink: 0;
       backdrop-filter: blur(40px);
@@ -90,6 +90,11 @@
       font-size: 13px;
       font-weight: 600;
       letter-spacing: -0.01em;
+      min-width: 0;
+      flex: 0 1 auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* The wordmark keeps e/olut/reversed-e plain so the V carries the identity. */
@@ -123,9 +128,10 @@
       border: none;
       color: var(--text-secondary);
       cursor: pointer;
-      padding: 4px;
+      padding: 3px;
       border-radius: 6px;
       font-size: 16px;
+      flex-shrink: 0;
       transition: all 0.2s;
       display: flex;
       align-items: center;
@@ -139,7 +145,9 @@
     .window-controls {
       display: flex;
       gap: 2px;
-      margin-left: 4px;
+      margin-left: auto;
+      padding-left: 4px;
+      flex-shrink: 0;
       -webkit-app-region: no-drag;
     }
 
@@ -468,15 +476,62 @@
 
     /* ── Input Area ── */
     #input-area {
-      padding: 14px 16px;
+      padding: 12px 16px 14px;
       background: rgba(255, 255, 255, 0.02);
       border-top: 1px solid var(--border);
       display: flex;
-      gap: 10px;
-      align-items: center;
+      flex-direction: column;
+      gap: 9px;
       flex-shrink: 0;
       backdrop-filter: blur(40px);
     }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Named buttons, not bare icons: the document icon sat unnoticed in
+       the title bar because nothing said what it was for. */
+    .tool-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .tool-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .tool-btn svg {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+
+    .tool-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--border-focus);
+    }
+
+    /* Voice toggle sits apart on the right; it is a mode, not an action. */
+    #tts-toggle { margin-left: auto; }
 
     #input {
       flex: 1;
@@ -623,8 +678,9 @@
     }
 
     .tts-btn {
-      height: 36px;
-      padding: 0 10px;
+      height: 28px;
+      width: 28px;
+      padding: 0;
       background: var(--bg-secondary);
       border: 1px solid var(--border);
       color: var(--text-secondary);
@@ -806,6 +862,283 @@
       background: var(--border);
       margin: 4px 0;
     }
+    /* -- Project Documents Panel -- */
+    #docs {
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      animation: slideDown 0.3s ease;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    #docs.hidden { display: none; }
+
+    #docs h3 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .docs-hint {
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+
+    #docs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    #docs-list:empty { display: none; }
+
+    .doc-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .doc-row .doc-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 11.5px;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .doc-row .doc-tokens {
+      flex-shrink: 0;
+      font-size: 10px;
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .doc-row .doc-remove {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      padding: 2px;
+      line-height: 0;
+      border-radius: 4px;
+    }
+
+    .doc-row .doc-remove:hover {
+      color: var(--error);
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    .docs-meter {
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .docs-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .docs-meter-fill.warn { background: #fbbf24; }
+    .docs-meter-fill.full { background: var(--error); }
+
+    .docs-meter-label {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      margin-bottom: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .docs-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      padding: 7px 12px;
+      font-size: 11.5px;
+      font-weight: 500;
+      font-family: inherit;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    #docs-msg {
+      margin-top: 10px;
+      margin-bottom: 0;
+    }
+
+    #docs-msg.error { color: var(--error); }
+
+    .docs-count {
+      position: absolute;
+      top: -5px;
+      right: -4px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 14px;
+      border-radius: 7px;
+      text-align: center;
+    }
+
+    .docs-count.hidden { display: none; }
+
+    /* Drag-and-drop target covering the whole window. */
+    body.dropping::after {
+      content: 'Drop files to attach';
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 10, 15, 0.85);
+      border: 2px dashed var(--accent);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 500;
+      pointer-events: none;
+    }
+    /* Caret while a reply is still being generated. */
+    .msg.assistant.streaming::after {
+      content: '8D';
+      margin-left: 1px;
+      opacity: 0.6;
+      animation: caret-blink 1s steps(2, start) infinite;
+    }
+
+    @keyframes caret-blink {
+      50% { opacity: 0; }
+    }
+    /* -- Chat history panel -- */
+    #history {
+      padding: 16px 20px 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      animation: slideDown 0.3s ease;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+
+    #history.hidden { display: none; }
+
+    #history h3 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    #history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .chat-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+    }
+
+    .chat-row:hover { background: var(--bg-secondary); }
+
+    .chat-row.active {
+      background: var(--accent-glow);
+      border-color: var(--border-focus);
+    }
+
+    .chat-open {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      padding: 8px 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+    }
+
+    .chat-title {
+      max-width: 100%;
+      font-size: 12px;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chat-when {
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+
+    .chat-delete {
+      flex-shrink: 0;
+      margin-right: 6px;
+      padding: 4px;
+      background: none;
+      border: none;
+      border-radius: 4px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      line-height: 0;
+      opacity: 0;
+    }
+
+    .chat-row:hover .chat-delete { opacity: 1; }
+
+    .chat-delete:hover {
+      color: var(--error);
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    #history-empty {
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-tertiary);
+    }
+
+    #history-empty.hidden { display: none; }
   </style>
 </head>
 <body>
@@ -835,28 +1168,28 @@
 
   <!-- Help Menu Dropdown -->
   <div id="help-menu">
-    <a data-href="https://github.com/tekram/clicky-windows/blob/master/docs/getting-started.md">
+    <a data-href="https://github.com/SafiUllahAdam/evolute/blob/main/docs/getting-started.md">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
       Getting Started
     </a>
-    <a data-href="https://github.com/tekram/clicky-windows/blob/master/docs/voice-and-tts.md">
+    <a data-href="https://github.com/SafiUllahAdam/evolute/blob/main/docs/voice-and-tts.md">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
       Voice & TTS Setup
     </a>
-    <a data-href="https://github.com/tekram/clicky-windows/blob/master/docs/hipaa-mode.md">
+    <a data-href="https://github.com/SafiUllahAdam/evolute/blob/main/docs/hipaa-mode.md">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       HIPAA Mode
     </a>
-    <a data-href="https://github.com/tekram/clicky-windows/blob/master/docs/proxy-setup.md">
+    <a data-href="https://github.com/SafiUllahAdam/evolute/blob/main/docs/proxy-setup.md">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
       Proxy Setup
     </a>
     <div class="divider"></div>
-    <a data-href="https://github.com/tekram/clicky-windows/blob/master/docs/troubleshooting.md">
+    <a data-href="https://github.com/SafiUllahAdam/evolute/blob/main/docs/troubleshooting.md">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       Troubleshooting
     </a>
-    <a data-href="https://github.com/tekram/clicky-windows/issues">
+    <a data-href="https://github.com/SafiUllahAdam/evolute/issues">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
       Report an Issue
     </a>
@@ -940,6 +1273,37 @@
     <p class="setup-hint">Pick a provider above. You need at least one AI key to get started.</p>
   </div>
 
+  <!-- Chat History Panel -->
+  <div id="history" class="hidden">
+    <h3>Past chats</h3>
+    <div id="history-list"></div>
+    <p id="history-empty">No earlier chats yet. Press <b>+</b> in the title bar to start a new one at any time; the current chat is saved automatically.</p>
+  </div>
+
+  <!-- Project Context Panel -->
+  <div id="docs" class="hidden">
+    <h3>Project context</h3>
+    <p class="docs-hint">
+      Attached files are sent with every question as standing background context, so
+      you do not have to re-explain the project. Drag files onto this window to add them.
+      On Anthropic they are cached between questions and cost a fraction to re-send;
+      other providers are charged in full each turn.
+    </p>
+
+    <div id="docs-list"></div>
+
+    <div class="docs-meter"><div class="docs-meter-fill" id="docs-meter-fill"></div></div>
+    <div class="docs-meter-label"><span id="docs-tokens">0</span> of <span id="docs-budget">0</span> tokens used</div>
+
+    <div class="docs-actions">
+      <button class="btn-primary" id="docs-add">Add files</button>
+      <button class="btn-secondary" id="docs-add-folder">Add folder</button>
+      <button class="btn-secondary" id="docs-clear">Remove all</button>
+    </div>
+
+    <p class="docs-hint" id="docs-msg"></p>
+  </div>
+
   <!-- Messages -->
   <div id="messages">
     <div class="welcome" id="welcome">
@@ -951,19 +1315,15 @@
       </div>
 
       <div class="help-links">
-        <a class="help-link" data-href="https://github.com/tekram/clicky-windows/blob/master/docs/getting-started.md">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-          Docs
-        </a>
-        <a class="help-link" data-href="https://github.com/tekram/clicky-windows/blob/master/docs/voice-and-tts.md">
+        <a class="help-link" data-href="https://github.com/SafiUllahAdam/evolute/blob/main/docs/voice-and-tts.md">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
           Voice
         </a>
-        <a class="help-link" data-href="https://github.com/tekram/clicky-windows/blob/master/docs/hipaa-mode.md">
+        <a class="help-link" data-href="https://github.com/SafiUllahAdam/evolute/blob/main/docs/hipaa-mode.md">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           HIPAA
         </a>
-        <a class="help-link" data-href="https://github.com/tekram/clicky-windows/blob/master/docs/troubleshooting.md">
+        <a class="help-link" data-href="https://github.com/SafiUllahAdam/evolute/blob/main/docs/troubleshooting.md">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Help
         </a>
@@ -979,10 +1339,7 @@
 
   <!-- Input -->
   <div id="input-area">
-    <button id="tts-toggle" class="tts-btn" title="Voice: Off">
-      <svg id="tts-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-      <span id="tts-label" style="font-size:9px;font-weight:600;letter-spacing:0.02em;margin-left:2px;"></span>
-    </button>
+    <div class="input-row">
     <input type="text" id="input" placeholder="Ask about your screen..." autofocus>
     <button id="mic-btn" class="mic-btn" title="Push to talk (or Ctrl+Alt+Space)">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -990,6 +1347,26 @@
     <button id="send">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>
+    </div>
+
+    <div class="tool-row">
+      <button class="tool-btn" id="new-chat-btn" title="Start a new chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New chat
+      </button>
+      <button class="tool-btn" id="history-btn" title="Reopen an earlier chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+        History
+      </button>
+      <button class="tool-btn" id="docs-btn" title="Attach your project files">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        Files
+        <span class="docs-count hidden" id="docs-count"></span>
+      </button>
+      <button id="tts-toggle" class="tts-btn" title="Voice: Off">
+        <svg id="tts-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </button>
+    </div>
   </div>
 
   <script>
@@ -1106,7 +1483,14 @@
 
     // Load existing settings
     window.evolute.getSettings().then((settings) => {
-      console.log('Settings loaded:', JSON.stringify(settings));
+      // Logs which providers are configured, never the keys themselves. The
+      // renderer console is readable from DevTools and gets captured by any
+      // log the main process forwards, so printing the settings object
+      // wholesale published every API key the user had entered.
+      console.log('Settings loaded. provider=' + settings.aiProvider +
+        ' configuredKeys=' + Object.keys(settings)
+          .filter((k) => k.endsWith('ApiKey') && settings[k])
+          .join(','));
       loadedSettings = settings;
 
       if (settings.anthropicApiKey) keyAnthropicInput.value = settings.anthropicApiKey;
@@ -1154,7 +1538,14 @@
 
     // Toggle setup panel
     toggleSetupBtn.addEventListener('click', () => {
+      const opening = setup.classList.contains('hidden');
       setup.classList.toggle('hidden');
+      // Both panels sit above the message list; showing them together leaves
+      // no room for the conversation.
+      if (opening) {
+        document.getElementById('docs').classList.add('hidden');
+        document.getElementById('history').classList.add('hidden');
+      }
     });
 
     function setConfigured(configured) {
@@ -1319,13 +1710,18 @@
       addMessage(text, 'user');
       addLoading();
 
+      streamProduced = false;
       try {
         const response = await window.evolute.sendQuery(text);
         document.getElementById('loading-msg')?.remove();
-        const displayText = response.replace(/\[POINT:[^\]]+\]/g, '').trim();
-        addMessage(displayText || '(no response)', 'assistant');
+        finalizeStream();
+        if (!streamProduced) {
+          const displayText = response.replace(POINT_TAG_RE, '').trim();
+          addMessage(displayText || '(no response)', 'assistant');
+        }
       } catch (err) {
         document.getElementById('loading-msg')?.remove();
+        finalizeStream();
         addMessage('Error: ' + (err.message || err), 'system');
       }
 
@@ -1390,6 +1786,8 @@
     let audioChunks = [];
     let isRecording = false;
 
+    let stopSilenceDetection = null;
+
     async function startRecording() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -1408,6 +1806,10 @@
         };
 
         mediaRecorder.onstop = async () => {
+          if (stopSilenceDetection) {
+            stopSilenceDetection();
+            stopSilenceDetection = null;
+          }
           // Stop all tracks to release mic
           stream.getTracks().forEach(t => t.stop());
 
@@ -1450,6 +1852,7 @@
           addMessage('(voice message)', 'user');
           addLoading();
 
+          streamProduced = false;
           try {
             const result = await window.evolute.sendAudioRecording(arrayBuffer);
 
@@ -1466,13 +1869,15 @@
                 lastUser.textContent = result.transcript;
               }
 
-              if (result.response) {
-                const displayText = result.response.replace(/\[POINT:[^\]]+\]/g, '').trim();
+              finalizeStream();
+              if (result.response && !streamProduced) {
+                const displayText = result.response.replace(POINT_TAG_RE, '').trim();
                 addMessage(displayText || '(no response)', 'assistant');
               }
             }
           } catch (err) {
             document.getElementById('loading-msg')?.remove();
+            finalizeStream();
             addMessage('Voice error: ' + (err.message || err), 'system');
           }
 
@@ -1483,9 +1888,16 @@
 
         mediaRecorder.start(250); // collect chunks every 250ms
         isRecording = true;
+        window.evolute.setRecordingState(true);
+
+        // One keypress: stop talking and the question sends itself.
+        stopSilenceDetection = startSilenceDetection(stream, () => {
+          if (isRecording) stopRecording();
+        });
+
         micBtn.className = 'mic-btn recording';
         micBtn.title = 'Recording... click to stop';
-        showStatus('Listening...', 'recording');
+        showStatus('Listening... pause when done', 'recording');
 
       } catch (err) {
         addMessage('Mic error: ' + (err.message || err), 'system');
@@ -1497,6 +1909,10 @@
         mediaRecorder.stop();
       }
       isRecording = false;
+      // Silence detection and the mic button both end recordings without the
+      // main process asking, and its hotkey flag has to follow. Otherwise the
+      // next Ctrl+Shift+Space only resets the flag and appears to do nothing.
+      window.evolute.setRecordingState(false);
     }
 
     // Click mic button to toggle
@@ -1520,7 +1936,6 @@
     // TTS 3-state toggle: off → windows → openai cloud → off
     const ttsToggle = document.getElementById('tts-toggle');
     const ttsIcon = document.getElementById('tts-icon');
-    const ttsLabel = document.getElementById('tts-label');
     // States: 'off', 'local', 'openai'
     let ttsState = 'off';
 
@@ -1547,13 +1962,10 @@
       ttsToggle.className = 'tts-btn' + (ttsState === 'local' ? ' active-local' : ttsState === 'openai' ? ' active-cloud' : '');
 
       if (ttsState === 'off') {
-        ttsLabel.textContent = '';
         ttsToggle.title = 'Voice off - click for Windows voice';
       } else if (ttsState === 'local') {
-        ttsLabel.textContent = 'WIN';
         ttsToggle.title = 'Windows voice - click for OpenAI voice';
       } else {
-        ttsLabel.textContent = 'AI';
         ttsToggle.title = 'OpenAI voice - click to turn off';
       }
     }
@@ -1608,6 +2020,452 @@
         helpMenu.classList.remove('visible');
       });
     });
+
+    // ══ Project context (attached documents + persistent conversation) ══
+
+    const docsBtn = document.getElementById('docs-btn');
+    const docsPanel = document.getElementById('docs');
+    const docsList = document.getElementById('docs-list');
+    const docsCount = document.getElementById('docs-count');
+    const docsTokensEl = document.getElementById('docs-tokens');
+    const docsBudgetEl = document.getElementById('docs-budget');
+    const docsMeterFill = document.getElementById('docs-meter-fill');
+    const docsMsg = document.getElementById('docs-msg');
+
+    const POINT_TAG_RE = /\[POINT:[^\]]+\]/g;
+    const REMOVE_ICON =
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/>' +
+      '<line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    function fmtNum(n) {
+      return (n || 0).toLocaleString('en-US');
+    }
+
+    function renderDocs(summary) {
+      if (!summary || !Array.isArray(summary.docs)) return;
+
+      // Rebuilt as nodes rather than an HTML string: file names come from the
+      // user's disk and have no business being parsed as markup.
+      docsList.replaceChildren();
+      for (const doc of summary.docs) {
+        const row = document.createElement('div');
+        row.className = 'doc-row';
+
+        const name = document.createElement('span');
+        name.className = 'doc-name';
+        name.textContent = doc.name;
+        name.title = doc.path;
+
+        const tokens = document.createElement('span');
+        tokens.className = 'doc-tokens';
+        tokens.textContent = fmtNum(doc.tokens) + ' tok';
+
+        const remove = document.createElement('button');
+        remove.className = 'doc-remove';
+        remove.title = 'Remove';
+        remove.innerHTML = REMOVE_ICON;
+        remove.addEventListener('click', async () => {
+          renderDocs(await window.evolute.removeDoc(doc.id));
+          docsMsg.classList.remove('error');
+          docsMsg.textContent = 'Removed ' + doc.name + '.';
+        });
+
+        row.append(name, tokens, remove);
+        docsList.appendChild(row);
+      }
+
+      docsTokensEl.textContent = fmtNum(summary.tokens);
+      docsBudgetEl.textContent = fmtNum(summary.budget);
+
+      const pct = summary.budget ? Math.min(100, (summary.tokens / summary.budget) * 100) : 0;
+      docsMeterFill.style.width = pct + '%';
+      docsMeterFill.classList.toggle('warn', pct >= 70 && pct < 95);
+      docsMeterFill.classList.toggle('full', pct >= 95);
+
+      const count = summary.docs.length;
+      docsCount.textContent = String(count);
+      docsCount.classList.toggle('hidden', count === 0);
+      docsBtn.title = count === 0
+        ? 'Project context'
+        : 'Project context (' + count + ' file' + (count === 1 ? '' : 's') + ')';
+    }
+
+    /** Says what landed and, for anything rejected, why. */
+    function reportAdd(result) {
+      if (!result) return;
+      const parts = [];
+      if (result.added && result.added.length > 0) {
+        parts.push('Added ' + result.added.length + ' file' + (result.added.length === 1 ? '' : 's') + '.');
+      }
+      if (result.skipped && result.skipped.length > 0) {
+        const detail = result.skipped
+          .slice(0, 4)
+          .map((s) => s.name + ' (' + s.reason + ')')
+          .join(', ');
+        const more = result.skipped.length > 4 ? ' and ' + (result.skipped.length - 4) + ' more' : '';
+        parts.push('Skipped ' + detail + more + '.');
+      }
+      docsMsg.classList.toggle('error', !!(result.skipped && result.skipped.length > 0) && !(result.added && result.added.length));
+      docsMsg.textContent = parts.join(' ') || 'Nothing to add.';
+    }
+
+    docsBtn.addEventListener('click', () => {
+      const opening = docsPanel.classList.contains('hidden');
+      docsPanel.classList.toggle('hidden');
+      // The two panels both push the message list down; showing them together
+      // leaves no room for the conversation.
+      if (opening) {
+        setup.classList.add('hidden');
+        document.getElementById('history').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('docs-add').addEventListener('click', async () => {
+      const result = await window.evolute.addDocs();
+      renderDocs(result);
+      reportAdd(result);
+    });
+
+    document.getElementById('docs-add-folder').addEventListener('click', async () => {
+      const result = await window.evolute.addDocsFolder();
+      renderDocs(result);
+      reportAdd(result);
+    });
+
+    document.getElementById('docs-clear').addEventListener('click', async () => {
+      renderDocs(await window.evolute.clearDocs());
+      docsMsg.classList.remove('error');
+      docsMsg.textContent = 'All files removed.';
+    });
+
+    window.evolute.onDocsChanged(renderDocs);
+    window.evolute.listDocs().then(renderDocs).catch((err) => {
+      console.warn('Could not load project documents:', err);
+    });
+
+    // ── Drag and drop ──
+    //
+    // Counted rather than toggled: dragging across a child element fires
+    // dragleave on the one being left, so a plain toggle flickers the overlay
+    // off while the pointer is still over the window.
+    let dragDepth = 0;
+
+    document.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragDepth++;
+      document.body.classList.add('dropping');
+    });
+
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    document.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) document.body.classList.remove('dropping');
+    });
+
+    document.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      document.body.classList.remove('dropping');
+
+      const paths = [];
+      for (const file of e.dataTransfer.files) {
+        try {
+          const filePath = window.evolute.getFilePath(file);
+          if (filePath) paths.push(filePath);
+        } catch (err) {
+          // A drop that is not a real file (dragged text, a browser link) has
+          // no path. Ignore it rather than failing the whole drop.
+        }
+      }
+      if (paths.length === 0) return;
+
+      const result = await window.evolute.addDocPaths(paths);
+      renderDocs(result);
+      reportAdd(result);
+      docsPanel.classList.remove('hidden');
+      setup.classList.add('hidden');
+    });
+
+    // ── Reopen the chat that was open last time ──
+    //
+    // Text only. The screenshots that went with those turns are gone, and the
+    // model is not re-sent them either, so what carries over is what was said,
+    // not what was on screen at the time.
+    window.evolute.getHistory().then((entries) => {
+      if (!Array.isArray(entries) || entries.length === 0) return;
+      for (const entry of entries) {
+        const text = entry.role === 'assistant'
+          ? stripPoints(entry.content).trim()
+          : entry.content;
+        if (text) addMessage(text, entry.role);
+      }
+      messages.scrollTop = messages.scrollHeight;
+    }).catch((err) => {
+      console.warn('Could not restore conversation history:', err);
+    });
+
+
+    // ══ Live mode: silence detection and streamed replies ══
+
+    /**
+     * Ends the recording once you stop talking, so a question takes one
+     * keypress instead of two.
+     *
+     * The first 400 ms measure the room rather than assuming a fixed cutoff: a
+     * desk fan or an air conditioner reads as constant low-level sound, and a
+     * hard threshold either treats that as speech forever or cuts off someone
+     * speaking quietly. Auto-stop only arms after real speech is heard, so
+     * pressing the hotkey and pausing to think does not send an empty clip.
+     */
+    const SILENCE_MS = 2000;
+    const CALIBRATE_MS = 400;
+
+    function startSilenceDetection(stream, onSilence) {
+      let ctx;
+      try {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (err) {
+        console.warn('Silence detection unavailable:', err);
+        return () => {};
+      }
+
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      source.connect(analyser);
+
+      const samples = new Float32Array(analyser.fftSize);
+      const started = Date.now();
+      let noiseFloor = 0.004;
+      let calibrated = false;
+      let heardSpeech = false;
+      let lastVoice = Date.now();
+      let fired = false;
+
+      const timer = setInterval(() => {
+        analyser.getFloatTimeDomainData(samples);
+
+        let sum = 0;
+        for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+        const rms = Math.sqrt(sum / samples.length);
+
+        if (!calibrated) {
+          noiseFloor = Math.max(noiseFloor, rms);
+          if (Date.now() - started >= CALIBRATE_MS) calibrated = true;
+          return;
+        }
+
+        const threshold = Math.max(0.012, noiseFloor * 2.5);
+        if (rms > threshold) {
+          heardSpeech = true;
+          lastVoice = Date.now();
+        } else if (heardSpeech && !fired && Date.now() - lastVoice > SILENCE_MS) {
+          fired = true;
+          onSilence();
+        }
+      }, 100);
+
+      return () => {
+        clearInterval(timer);
+        try {
+          source.disconnect();
+          ctx.close();
+        } catch (err) {
+          // Context already closed.
+        }
+      };
+    }
+
+    // ── Streamed reply rendering ──
+    //
+    // The main process pushes the answer in fragments as the model writes it.
+    // Text goes in as plain text while streaming and is re-rendered as
+    // markdown once complete: running a markdown parser over a half-finished
+    // reply produces broken lists and stray asterisks on every keystroke.
+
+    let streamDiv = null;
+    let streamBuffer = '';
+    let streamProduced = false;
+
+    /** Hides POINT tags, including one that is only half-streamed. */
+    function stripPoints(text) {
+      let out = text.replace(POINT_TAG_RE, '');
+      const open = out.lastIndexOf('[');
+      if (open >= 0 && out.indexOf(']', open) === -1 && out.startsWith('[POINT:', open)) {
+        out = out.slice(0, open);
+      }
+      return out;
+    }
+
+    function finalizeStream() {
+      if (!streamDiv) return;
+      const text = stripPoints(streamBuffer).trim();
+      if (!text) {
+        streamDiv.remove();
+      } else if (typeof marked !== 'undefined') {
+        try {
+          streamDiv.innerHTML = marked.parse(text, { breaks: true });
+        } catch (err) {
+          streamDiv.textContent = text;
+        }
+      } else {
+        streamDiv.textContent = text;
+      }
+      streamDiv.classList.remove('streaming');
+      streamDiv = null;
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    window.evolute.onStream((event) => {
+      if (!event) return;
+
+      if (event.type === 'start') {
+        streamBuffer = '';
+        streamProduced = true;
+        document.getElementById('loading-msg')?.remove();
+        streamDiv = addMessage('', 'assistant');
+        streamDiv.classList.add('streaming');
+        return;
+      }
+
+      if (event.type === 'delta') {
+        if (!streamDiv) return;
+        streamBuffer += event.text || '';
+        streamDiv.textContent = stripPoints(streamBuffer);
+        messages.scrollTop = messages.scrollHeight;
+        return;
+      }
+
+      if (event.type === 'end') {
+        finalizeStream();
+      }
+    });
+
+
+    // ══ Chat history: new chat, past chats, switching between them ══
+
+    const newChatBtn = document.getElementById('new-chat-btn');
+    const historyBtn = document.getElementById('history-btn');
+    const historyPanel = document.getElementById('history');
+    const historyList = document.getElementById('history-list');
+    const historyEmpty = document.getElementById('history-empty');
+
+    let activeSessionId = null;
+
+    /** "just now", "5m", "3h", "2d" - short enough for a 420px window. */
+    function shortAgo(ts) {
+      const secs = Math.max(0, Math.round((Date.now() - ts) / 1000));
+      if (secs < 60) return 'just now';
+      const mins = Math.round(secs / 60);
+      if (mins < 60) return mins + 'm ago';
+      const hours = Math.round(mins / 60);
+      if (hours < 24) return hours + 'h ago';
+      return Math.round(hours / 24) + 'd ago';
+    }
+
+    /** Wipes the transcript and repaints it from a session's stored turns. */
+    function renderConversation(entries) {
+      messages.replaceChildren();
+      if (!Array.isArray(entries) || entries.length === 0) return;
+      for (const entry of entries) {
+        const text = entry.role === 'assistant'
+          ? stripPoints(entry.content).trim()
+          : entry.content;
+        if (text) addMessage(text, entry.role);
+      }
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function renderSessions(state) {
+      if (!state || !Array.isArray(state.sessions)) return;
+      activeSessionId = state.activeId;
+
+      historyList.replaceChildren();
+      const listed = state.sessions.filter((s) => s.messageCount > 0 || s.id === state.activeId);
+
+      historyEmpty.classList.toggle('hidden', listed.length > 1 || listed.some((s) => s.messageCount > 0));
+
+      for (const session of listed) {
+        const row = document.createElement('div');
+        row.className = 'chat-row' + (session.id === state.activeId ? ' active' : '');
+
+        const body = document.createElement('button');
+        body.className = 'chat-open';
+        // Built as nodes: a chat is titled after whatever the user typed, and
+        // that must never reach innerHTML.
+        const title = document.createElement('span');
+        title.className = 'chat-title';
+        title.textContent = session.title;
+        const when = document.createElement('span');
+        when.className = 'chat-when';
+        when.textContent = shortAgo(session.updatedAt);
+        body.append(title, when);
+        body.addEventListener('click', async () => {
+          if (session.id === activeSessionId) {
+            historyPanel.classList.add('hidden');
+            return;
+          }
+          const result = await window.evolute.switchSession(session.id);
+          renderConversation(result.entries);
+          renderSessions(result);
+          historyPanel.classList.add('hidden');
+        });
+
+        const del = document.createElement('button');
+        del.className = 'chat-delete';
+        del.title = 'Delete this chat';
+        del.innerHTML = REMOVE_ICON;
+        del.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const result = await window.evolute.deleteSession(session.id);
+          if (session.id === activeSessionId) renderConversation(result.entries);
+          renderSessions(result);
+        });
+
+        row.append(body, del);
+        historyList.appendChild(row);
+      }
+    }
+
+    async function refreshSessions() {
+      try {
+        renderSessions(await window.evolute.listSessions());
+      } catch (err) {
+        console.warn('Could not load chat history:', err);
+      }
+    }
+
+    newChatBtn.addEventListener('click', async () => {
+      const result = await window.evolute.newSession();
+      renderConversation(result.entries);
+      renderSessions(result);
+      historyPanel.classList.add('hidden');
+      input.focus();
+    });
+
+    historyBtn.addEventListener('click', async () => {
+      const opening = historyPanel.classList.contains('hidden');
+      if (opening) {
+        await refreshSessions();
+        setup.classList.add('hidden');
+        docsPanel.classList.add('hidden');
+      }
+      historyPanel.classList.toggle('hidden');
+    });
+
+    // The list shows a relative time and a title taken from the first question,
+    // so it goes stale as soon as a reply lands.
+    window.evolute.onStream((event) => {
+      if (event && event.type === 'end') refreshSessions();
+    });
+
+    refreshSessions();
+
   </script>
 </body>
 </html>

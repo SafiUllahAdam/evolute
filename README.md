@@ -14,19 +14,27 @@ It only looks when you ask. Nothing is captured in the background.
 
 ## How it works
 
-1. Press `Ctrl+Shift+Space` and speak. Press it again to stop - it is a toggle, not a hold.
-   (Or just type in the chat window; voice is optional.)
+1. Press `Ctrl+Shift+Space` and speak. Stop talking and it sends itself after a
+   two second pause; press again to cut it off early. (Or just type in the chat
+   window; voice is optional.)
 2. Your speech is transcribed and the screen is captured at that instant.
 3. Both go to a vision model, which replies in words and, where relevant, with
    coordinates for what it is describing.
-4. The answer appears in chat and is spoken aloud. Coordinates become an
-   on-screen **V** that lands on the element for a few seconds.
+4. The answer streams into the chat as it is written, and each sentence is
+   spoken as soon as it is finished rather than after the whole reply.
+   Coordinates become an on-screen **V** that lands on the element for a few
+   seconds.
 
 ## Key capabilities
 
 **Voice and screen understanding.** Push-to-talk transcription with a choice of
 engines, paired with a full-resolution screen capture so the model reads what
-you are actually looking at, including small text.
+you are actually looking at, including small text. Recording ends on its own
+when you stop speaking.
+
+**Answers that start immediately.** Replies stream in as the model writes them
+and are spoken sentence by sentence, so the first words arrive in a second or
+two instead of after the whole answer is finished.
 
 **Visual guidance.** Answers can point. The model emits inline `[POINT]` tags
 that become an animated marker on the real screen, across multiple monitors.
@@ -37,8 +45,15 @@ coordinates, which are close but less exact.
 **Cursor companion.** A small glowing purple V rides just off your mouse
 pointer so you can see the app is live. Toggleable.
 
+**Project context.** Attach your README, docs and source files once and every
+answer is informed by them, so you never re-explain the project. Files are held
+in the system prompt and cached between questions on Anthropic, which makes
+re-sending them cheap. Drag them onto the chat window or use the file picker.
+Files that commonly hold secrets, such as `.env`, are refused.
+
 **Stays out of the way.** Lives in the system tray, optional always-on-top chat
-window, remembers the last 20 exchanges of a conversation.
+window, remembers the last 20 exchanges of a conversation and picks the thread
+back up after a restart.
 
 ## Supported AI models
 
@@ -56,6 +71,9 @@ Speech: Windows SAPI (offline), OpenAI, or ElevenLabs.
 
 Screens are captured only in response to an explicit request, never on a timer
 or in the background.
+
+Attached project files are read from disk and sent to your chosen model with
+each question. Nothing is attached unless you attach it.
 
 Choosing local Whisper and Windows SAPI keeps audio and spoken replies entirely
 on the machine; only the model call leaves it. **HIPAA mode** enforces that
@@ -99,9 +117,8 @@ provider you want to use.
 
 ## Roadmap
 
-- Auto-stop recording on silence, so push-to-talk does not need a second press
 - Point refinement for non-Anthropic providers
-- Conversation history that survives a restart
+- Prompt caching for the non-Anthropic providers
 - Signed builds, to drop the SmartScreen warning
 
 ## Architecture

@@ -19,6 +19,14 @@ export class HotkeyManager {
 
     // IPC listeners for renderer
     ipcMain.handle("hotkey:isRecording", () => this.isRecording);
+
+    // The renderer can end a recording without being told to: it stops on its
+    // own when it hears silence, and the mic button stops one on click.
+    // Without this the manager's flag stays true, so the next hotkey press
+    // only flips it back to false and the user has to press twice to talk.
+    ipcMain.handle("hotkey:setRecording", (_event, recording: boolean) => {
+      this.isRecording = !!recording;
+    });
   }
 
   private toggleRecording(): void {

@@ -1,0 +1,30 @@
+# Line endings.
+#
+# core.autocrlf is true on this machine, so without these rules Git prints
+# "LF will be replaced by CRLF the next time Git touches it" for every text
+# file on every status, diff, add and commit. The repository already stores
+# LF, so this states that explicitly and the warnings stop.
+* text=auto eol=lf
+
+# Batch files are the one exception: cmd.exe can misparse a .bat saved with
+# LF endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binaries must never be line-ending converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.zip binary
+*.gz binary
+*.exe binary
+*.dll binary
+*.bin binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary
+*.wav binary

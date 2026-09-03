@@ -10,7 +10,7 @@ const { exec } = require("child_process");
 
 const settingsPath = path.join(
   process.env.APPDATA || "",
-  "clicky-windows",
+  "evolute-windows",
   "settings.json"
 );
 
@@ -31,7 +31,7 @@ async function testClaude(settings) {
       messages: [
         {
           role: "user",
-          content: "You are Clicky, an AI screen companion. Say hello in one sentence and confirm you can see screens.",
+          content: "You are eVolute, an AI screen companion. Say hello in one sentence and confirm you can see screens.",
         },
       ],
     }),
@@ -88,7 +88,7 @@ async function testElevenLabs(settings) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        text: "Clicky works!",
+        text: "eVolute works!",
         model_id: "eleven_flash_v2_5",
       }),
     }
@@ -139,7 +139,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("=== Clicky Windows Integration Tests ===\n");
+  console.log("=== eVolute Integration Tests ===\n");
 
   let passed = 0;
   let failed = 0;
@@ -147,7 +147,7 @@ async function main() {
   try { await testClaude(settings); passed++; }
   catch (e) { console.error("FAIL:", e.message, "\n"); failed++; }
 
-  try { await testLocalTTS("Hello, I am Clicky, your AI screen companion."); passed++; }
+  try { await testLocalTTS("Hello, I am eVolute, your AI screen companion."); passed++; }
   catch (e) { console.error("FAIL:", e.message, "\n"); failed++; }
 
   try { await testElevenLabs(settings); passed++; }

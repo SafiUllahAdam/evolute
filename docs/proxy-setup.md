@@ -18,7 +18,7 @@ The proxy is a lightweight Cloudflare Worker that forwards requests to Anthropic
 
 ```bash
 # Clone the repo
-git clone https://github.com/tekram/clicky-windows.git
+git clone https://github.com/SafiUllahAdam/evolute.git
 cd evolute-windows/worker
 
 # Install dependencies

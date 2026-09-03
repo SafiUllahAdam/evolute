@@ -1,6 +1,7 @@
 import { BrowserWindow } from "electron";
 import { ScreenCapture, ScreenshotResult, cropScreenshotRegion } from "./screenshot";
 import { SettingsStore } from "./settings";
+import { ProjectStore, ConversationEntry, SessionMeta } from "./project-store";
 import { ClaudeService } from "../services/claude";
 import { OpenAIChatService } from "../services/openai-chat";
 import { OpenRouterChatService } from "../services/openrouter-chat";
@@ -10,11 +11,7 @@ import {
   createTranscriptionProvider,
 } from "../services/transcription/interface";
 import { createTTSProvider } from "../services/tts/interface";
-
-interface ConversationEntry {
-  role: "user" | "assistant";
-  content: string;
-}
+import { SpeechQueue } from "../services/tts/speech-queue";
 
 interface AIProvider {
   query(params: {
@@ -22,6 +19,8 @@ interface AIProvider {
     screenshots: ScreenshotResult[];
     cursorPosition: { x: number; y: number };
     conversationHistory: ConversationEntry[];
+    documents: string;
+    onDelta: (chunk: string) => void;
   }): Promise<{ text: string }>;
 }
 
@@ -38,12 +37,24 @@ export class CompanionManager {
   private transcription: TranscriptionProvider;
   private conversationHistory: ConversationEntry[] = [];
   private overlayWindows: BrowserWindow[] = [];
+  private projects: ProjectStore;
+  /** The reply currently being spoken, kept so a new question can cut it off. */
+  private speech: SpeechQueue | null = null;
 
-  constructor(settings: SettingsStore, overlayWindows: BrowserWindow[]) {
+  constructor(
+    settings: SettingsStore,
+    overlayWindows: BrowserWindow[],
+    projects: ProjectStore
+  ) {
     this.settings = settings;
     this.screenCapture = new ScreenCapture();
     this.transcription = createTranscriptionProvider(settings);
     this.overlayWindows = overlayWindows;
+    this.projects = projects;
+    // Pick the conversation back up where the last run left it. Text only:
+    // the screenshots that went with those turns are long stale, and resending
+    // them would be both expensive and misleading about the current screen.
+    this.conversationHistory = projects.getHistory();
   }
 
   private getAIProvider(): AIProvider {
@@ -58,6 +69,21 @@ export class CompanionManager {
       return new OpenAICompatibleChatService(this.settings, SLOTS[provider]);
     }
     return new ClaudeService(this.settings);
+  }
+
+  /**
+   * Pushes the reply to the chat window as it is generated.
+   *
+   * `start` and `end` bracket a reply so the window knows when to open a fresh
+   * message bubble and when to re-render it as markdown; `delta` carries each
+   * fragment in between.
+   */
+  private broadcastStream(event: { type: "start" | "delta" | "end"; text?: string }): void {
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send("chat:stream", event);
+      }
+    }
   }
 
   private broadcastStage(stage: string, label: string): void {
@@ -81,14 +107,54 @@ export class CompanionManager {
     // 2. Send to AI provider with conversation history
     this.conversationHistory.push({ role: "user", content: transcript });
 
+    // A new question cancels whatever the previous answer was still saying.
+    if (this.speech) this.speech.stop();
+    this.speech = null;
+
+    let speech: SpeechQueue | null = null;
+    if (this.settings.get("ttsEnabled")) {
+      try {
+        speech = new SpeechQueue(createTTSProvider(this.settings));
+        this.speech = speech;
+      } catch (err: unknown) {
+        // A misconfigured voice must not stop the answer being written out.
+        console.warn(
+          "TTS provider creation failed:",
+          err instanceof Error ? err.message : err
+        );
+      }
+    }
+
     this.broadcastStage("querying", "Analyzing...");
+    this.broadcastStream({ type: "start" });
+
     const ai = this.getAIProvider();
+    let firstDelta = true;
     const response = await ai.query({
       transcript,
       screenshots,
       cursorPosition: cursorPos,
       conversationHistory: this.conversationHistory,
+      documents: this.projects.getDocumentContext(),
+      onDelta: (chunk) => {
+        if (firstDelta) {
+          firstDelta = false;
+          this.broadcastStage("responding", "Responding...");
+        }
+        this.broadcastStream({ type: "delta", text: chunk });
+        if (speech) speech.push(chunk);
+      },
     });
+
+    this.broadcastStream({ type: "end" });
+
+    // Flushed here rather than after the pointing work below: refinement is a
+    // whole extra round-trip, and the closing sentence should not wait on it.
+    if (speech) {
+      speech.flush().catch(() => {
+        // Already reported per sentence inside the queue.
+      });
+    }
 
     this.conversationHistory.push({ role: "assistant", content: response.text });
 
@@ -96,6 +162,11 @@ export class CompanionManager {
     if (this.conversationHistory.length > MAX_CONVERSATION_HISTORY * 2) {
       this.conversationHistory = this.conversationHistory.slice(-MAX_CONVERSATION_HISTORY * 2);
     }
+
+    // Persist after every completed turn rather than on quit: this is a tray
+    // app that is usually killed rather than closed, and an exit handler that
+    // never runs saves nothing.
+    this.projects.saveHistory(this.conversationHistory);
 
     // 3a. Parse raw POINT tags (still in image-pixel space).
     const rawTags = this.parseRawPointTags(response.text);
@@ -185,23 +256,6 @@ export class CompanionManager {
       }
     }
 
-    // 4. Speak response (strip POINT tags from spoken text) - non-blocking
-    //    Re-read settings each time so chat toggle changes take effect immediately
-    const spokenText = response.text.replace(/\[POINT:[^\]]+\]/g, "").trim();
-    const ttsOn = this.settings.get("ttsEnabled");
-    const ttsProv = this.settings.get("ttsProvider");
-    if (ttsOn && spokenText) {
-      this.broadcastStage("speaking", "Speaking...");
-      try {
-        const tts = createTTSProvider(this.settings);
-        tts.speak(spokenText).catch((err) => {
-          console.warn("TTS failed (non-fatal):", err.message);
-        });
-      } catch (err: unknown) {
-        console.warn("TTS provider creation failed:", err instanceof Error ? err.message : err);
-      }
-    }
-
     return response.text;
     } finally {
       this.broadcastStage("done", "");
@@ -227,7 +281,55 @@ export class CompanionManager {
     return tags;
   }
 
+  /** Cuts off any reply still being spoken. Used on quit. */
+  stopSpeaking(): void {
+    if (this.speech) {
+      this.speech.stop();
+      this.speech = null;
+    }
+  }
+
+  /** Transcript of the running conversation, for the chat window to replay. */
+  getHistory(): ConversationEntry[] {
+    return this.conversationHistory.map((entry) => ({ ...entry }));
+  }
+
+  /** Empties the open chat. Attached documents are deliberately kept. */
   clearHistory(): void {
+    this.stopSpeaking();
     this.conversationHistory = [];
+    this.projects.clearHistory();
+  }
+
+  listSessions(): SessionMeta[] {
+    return this.projects.listSessions();
+  }
+
+  activeSessionId(): string {
+    return this.projects.activeSessionId();
+  }
+
+  /** Opens a new chat. Documents stay attached across all chats. */
+  newSession(): SessionMeta {
+    this.stopSpeaking();
+    const meta = this.projects.newSession();
+    this.conversationHistory = [];
+    return meta;
+  }
+
+  /** Reopens an earlier chat and continues it. */
+  switchSession(id: string): ConversationEntry[] {
+    this.stopSpeaking();
+    this.conversationHistory = this.projects.switchSession(id);
+    return this.getHistory();
+  }
+
+  deleteSession(id: string): { sessions: SessionMeta[]; activeId: string } {
+    this.stopSpeaking();
+    const result = this.projects.deleteSession(id);
+    if (result.switched) {
+      this.conversationHistory = this.projects.getHistory();
+    }
+    return { sessions: result.sessions, activeId: result.activeId };
   }
 }

@@ -75,13 +75,7 @@ Transcripts, screenshots, API keys, and response content are **never logged**.
 
 ## Reporting Security Issues
 
-If you find a security issue, please open an issue at [github.com/tekram/evolute-windows/issues](https://github.com/tekram/clicky-windows/issues) or email the maintainer directly.
+If you find a security issue, please open an issue at [github.com/SafiUllahAdam/evolute/issues](https://github.com/SafiUllahAdam/evolute/issues) or email the maintainer directly.
 
 ## Comparison with Original macOS Evolute
 
-The original [farzaa/clicky](https://github.com/farzaa/clicky) uses a different model:
-- Cloudflare Worker proxy holds all API keys (users don't need their own)
-- Worker is public/unauthenticated
-- PostHog analytics enabled
-
-Our Windows version intentionally avoids these patterns by using BYOK and zero telemetry.
